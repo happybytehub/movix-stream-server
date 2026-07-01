@@ -7,15 +7,13 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// Allow downloaded files
+// Serve converted files
 app.use("/files", express.static(__dirname));
 
-// Home route
 app.get("/", (req, res) => {
-    res.send("🚀 Movix Stream Server (FFmpeg Ready)");
+    res.send("🚀 Movix Stream Server (FFmpeg Enabled)");
 });
 
-// Status route
 app.get("/api/status", (req, res) => {
     res.json({
         status: "ok",
@@ -24,11 +22,7 @@ app.get("/api/status", (req, res) => {
     });
 });
 
-/*
- * STEP 1
- * Sketchware can now send:
- * https://your-server.onrender.com/api/convert?url=YOUR_M3U8_LINK
- */
+// Convert m3u8 → mp4
 app.get("/api/convert", (req, res) => {
 
     const url = req.query.url;
@@ -40,12 +34,31 @@ app.get("/api/convert", (req, res) => {
         });
     }
 
-    // For now just confirm the server received the link.
-    // We will enable FFmpeg conversion in the next step.
-    res.json({
-        status: "success",
-        message: "m3u8 link received",
-        stream_url: url
+    const fileName = "video_" + Date.now() + ".mp4";
+    const output = path.join(__dirname, fileName);
+
+    const cmd =
+        `ffmpeg -y -i "${url}" -c copy -bsf:a aac_adtstoasc "${output}"`;
+
+    exec(cmd, (err) => {
+
+        if (err) {
+            console.log(err);
+
+            return res.json({
+                status: "error",
+                message: "FFmpeg conversion failed",
+                error: err.message
+            });
+        }
+
+        res.json({
+            status: "success",
+            message: "Conversion complete",
+            download:
+                "https://movix-stream-server.onrender.com/files/" + fileName
+        });
+
     });
 
 });

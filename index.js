@@ -37,14 +37,19 @@ app.get("/api/convert", (req, res) => {
     const fileName = "video_" + Date.now() + ".mp4";
     const output = path.join(__dirname, fileName);
 
+    // Browser-like headers
+    const headers =
+        "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n" +
+        "Referer: https://vsembed.ru/\r\n" +
+        "Origin: https://vsembed.ru\r\n";
+
     const cmd =
-        `ffmpeg -y -i "${url}" -c copy -bsf:a aac_adtstoasc "${output}"`;
+        `ffmpeg -y -headers "${headers}" -i "${url}" -c copy -bsf:a aac_adtstoasc "${output}"`;
 
     exec(cmd, (error, stdout, stderr) => {
 
         if (error) {
 
-            // Return only the last 10 lines of the FFmpeg error
             const lines = stderr.split("\n");
             const lastLines = lines.slice(-10).join("\n");
 

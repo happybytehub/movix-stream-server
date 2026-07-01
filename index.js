@@ -1,44 +1,67 @@
 const express = require("express");
-const app = express();
+const { exec } = require("child_process");
+const fs = require("fs");
+const path = require("path");
 
+const app = express();
 const PORT = process.env.PORT || 3000;
 
-// allow JSON body
 app.use(express.json());
 
-// root route (Render check)
+// allow downloaded files
+app.use("/files", express.static(__dirname));
+
+// TEST ROUTE
 app.get("/", (req, res) => {
-    res.send("🚀 Movix Stream Server is LIVE");
+    res.send("🚀 Movix Stream Server (FFmpeg Ready)");
 });
 
-// status route (for testing app connection)
+// STATUS ROUTE
 app.get("/api/status", (req, res) => {
     res.json({
         status: "ok",
-        message: "Server is running successfully",
+        message: "Server running",
         time: new Date().toISOString()
     });
 });
 
-// TEMP STREAM ROUTE (we will improve later)
-app.post("/api/stream", (req, res) => {
+
+// 🔥 MAIN STREAM CONVERT ROUTE
+app.post("/api/convert", (req, res) => {
     const url = req.body.url;
 
     if (!url) {
         return res.json({
             status: "error",
-            message: "No m3u8 URL provided"
+            message: "No m3u8 link provided"
         });
     }
 
-    // For now we just return the same URL (we will upgrade to FFmpeg later)
-    res.json({
-        status: "ok",
-        stream: url
+    const fileName = `video_${Date.now()}.mp4`;
+    const outputPath = path.join(__dirname, fileName);
+
+    // FFmpeg command
+    const cmd = `ffmpeg -i "${url}" -c copy -bsf:a aac_adtstoasc "${outputPath}"`;
+
+    exec(cmd, (error) => {
+        if (error) {
+            console.log("FFmpeg error:", error);
+
+            return res.json({
+                status: "error",
+                message: "Conversion failed (FFmpeg issue)",
+                hint: "Render may not support FFmpeg fully on free plan"
+            });
+        }
+
+        return res.json({
+            status: "success",
+            message: "Video ready",
+            download: `/files/${fileName}`
+        });
     });
 });
 
-// start server (VERY IMPORTANT for Render)
 app.listen(PORT, () => {
-    console.log("✅ Server running on port " + PORT);
+    console.log("Server running on port " + PORT);
 });

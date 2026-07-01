@@ -1,6 +1,5 @@
 const express = require("express");
 const { exec } = require("child_process");
-const fs = require("fs");
 const path = require("path");
 
 const app = express();
@@ -8,15 +7,15 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// allow downloaded files
+// Allow downloaded files
 app.use("/files", express.static(__dirname));
 
-// TEST ROUTE
+// Home route
 app.get("/", (req, res) => {
     res.send("🚀 Movix Stream Server (FFmpeg Ready)");
 });
 
-// STATUS ROUTE
+// Status route
 app.get("/api/status", (req, res) => {
     res.json({
         status: "ok",
@@ -25,43 +24,32 @@ app.get("/api/status", (req, res) => {
     });
 });
 
+/*
+ * STEP 1
+ * Sketchware can now send:
+ * https://your-server.onrender.com/api/convert?url=YOUR_M3U8_LINK
+ */
+app.get("/api/convert", (req, res) => {
 
-// 🔥 MAIN STREAM CONVERT ROUTE
-app.post("/api/convert", (req, res) => {
-    const url = req.body.url;
+    const url = req.query.url;
 
     if (!url) {
         return res.json({
             status: "error",
-            message: "No m3u8 link provided"
+            message: "No m3u8 URL received"
         });
     }
 
-    const fileName = `video_${Date.now()}.mp4`;
-    const outputPath = path.join(__dirname, fileName);
-
-    // FFmpeg command
-    const cmd = `ffmpeg -i "${url}" -c copy -bsf:a aac_adtstoasc "${outputPath}"`;
-
-    exec(cmd, (error) => {
-        if (error) {
-            console.log("FFmpeg error:", error);
-
-            return res.json({
-                status: "error",
-                message: "Conversion failed (FFmpeg issue)",
-                hint: "Render may not support FFmpeg fully on free plan"
-            });
-        }
-
-        return res.json({
-            status: "success",
-            message: "Video ready",
-            download: `/files/${fileName}`
-        });
+    // For now just confirm the server received the link.
+    // We will enable FFmpeg conversion in the next step.
+    res.json({
+        status: "success",
+        message: "m3u8 link received",
+        stream_url: url
     });
+
 });
 
 app.listen(PORT, () => {
-    console.log("Server running on port " + PORT);
+    console.log("✅ Server running on port " + PORT);
 });

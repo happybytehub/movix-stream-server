@@ -40,23 +40,25 @@ app.get("/api/convert", (req, res) => {
     const cmd =
         `ffmpeg -y -i "${url}" -c copy -bsf:a aac_adtstoasc "${output}"`;
 
-    exec(cmd, (err) => {
+    exec(cmd, (error, stdout, stderr) => {
 
-        if (err) {
-            console.log(err);
+        if (error) {
+
+            // Return only the last 10 lines of the FFmpeg error
+            const lines = stderr.split("\n");
+            const lastLines = lines.slice(-10).join("\n");
 
             return res.json({
                 status: "error",
                 message: "FFmpeg conversion failed",
-                error: err.message
+                error: lastLines
             });
         }
 
-        res.json({
+        return res.json({
             status: "success",
             message: "Conversion complete",
-            download:
-                "https://movix-stream-server.onrender.com/files/" + fileName
+            download: `https://movix-stream-server.onrender.com/files/${fileName}`
         });
 
     });
